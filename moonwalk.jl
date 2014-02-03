@@ -84,13 +84,15 @@ function struct_to_map(text)
     end
     # assumes all dot indexing is for structs
     # TODO create a map if variable not initialized
-    replace(text, r"\.[A-z]\w*", helper)
+    replace(text, r"\.[A-Za-z]\w*", helper)
 end
 
 const func_map =
     {
      "numel" => "length",
      "zeros" => "matlab_zeros",
+     "bsxfun" => "broadcast",
+     "max" => "maximum",
      }
 
 function function_replace(text)
@@ -99,7 +101,22 @@ function function_replace(text)
     end
 
     for (k,v) in func_map
+        # FIXME this won't work for functions at the beginning
+        # of a file
         text = replace(text, Regex("\\W"*k*"\\("), x->helper(x, v))
+    end
+    text
+end
+
+const word_map =
+   {
+    "@rdivide" => "/",
+    "@minus" => "-",
+   }
+
+function word_replace(text)
+    for (k,v) in word_map
+        text = replace(text, k, v)
     end
     text
 end
@@ -124,6 +141,7 @@ const text_transforms =
      struct_to_map
      function_replace
      single_function_file
+     word_replace
      ]
 
 # array of functions that takes in global state

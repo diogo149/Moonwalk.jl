@@ -121,6 +121,24 @@ solution
 -plot formatting
  hold on
 ** matlab has classes and julia has types
+* to be done with deeper transformations
+** grouping together parentheses, brackets, braces, ____ end
+-function end
+ -(with optional end)
+-if elseif else end
+-switch case end
+-replace 'adad' with "adad" but not A' (transpose)
+-max(blah, [], 2) -> maximum(blah, 2)
+** function conversion
+converting something like:
+ func(3,4,[1 2])[3,4](2, 1)
+  to
+ func(3,4,[1 2])[3,4][2, 1]
+** switch statements
+switch val
+ case v1 ...
+ case {v2. v3} ...
+end
 * to read
 [[https://github.com/lakras/matlab-to-julia/blob/master/translator.pl][sample translator]]
 [[http://docs.julialang.org/en/latest/manual/noteworthy-differences/][noteworthy differences between julia and matlab]]

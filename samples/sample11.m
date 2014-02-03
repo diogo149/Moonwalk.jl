@@ -1,4 +1,3 @@
-x = (1 + 2 + 3)
-foo(3)
-doremi(a,b,c)
-hello["world"](2)
+% hello world
+bsxfun(@rdivide, [1 2; 3 4], [2 3])
+bsxfun(@minus, [1 2; 3 4], [2 3])
