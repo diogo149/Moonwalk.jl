@@ -1,0 +1,173 @@
+format bank
+format(bank)
+format()
+format
+a = 2; b = 3; 
+a
+b
+a = 2, b = 3; 
+a = b, c = [1 2]
+a
+b
+c
+1 ~= 2
+1 != 2
+3 > 1 && 4 > 1
+[1 0] & [0 1]
+max([2 3])
+maximum([2 3])
+comp
+x -> maximum(x)
+A = randn(3,4)
+A[A > 3]
+A > 3
+A < 3
+A .< 3
+A .> 3
+A[A .> 3]
+A[A .< 3]
+3 .> A
+{1,2}
+A
+A[:, [3 1 2]]
+A
+A[:, 3]
+A[1,:]
+A[1,:] = []
+hold()
+keyboard()
+fopen()
+open("notes.org")
+x = open("notes.org")
+x.ios
+read(x)
+read("notes.org")
+close(x)
+close(x)
+if false
+elseif
+ true
+3
+end
+disp(3)
+display(3)
+help(displa(
+y)
+1 + 1
+for k = 1:5
+    display(k)
+
+end
+k = 0;  
+while (k < 5)
+    k = k + 1;
+end
+k
+rand(3)
+rand = 3
+rand
+delete!(rand)
+rand
+load
+save
+input("ada")
+copy(A)
+cell(3)
+[1,2,3]... 
+[1,2]
+[1 2]
+x(y) = randn(2,3)
+x
+x1(y) = randn(2,3)
+x1(2)
+[a, b] = x1(2)
+(a, b) = x1(2)
+a
+b
+(a..., b...) = x1(2)
+x1(a..., b...) = println(a, b)
+x1(final a..., final b...) = println(a, b)
+ccall(:clock, Int32, ())
+34
+ans
+ans
+f(x) = x * x
+f(2)
+ans
+println(ans)
+    bytestring(ccall(:getenv, Ptr{Uint8int8}, (Ptr{Uint8},), "SHELL"))
+
+    bytestring(ccall(:getenv, Ptr{Uint8}, (Ptr{Uint8},), "SHELL"))
+
+    using PyCall
+    @pyimport math
+    math.sin(math.pi / 4) - sin(pi / 4)
+math.sin(math.pi / 4)
+@time math.sin(math.pi / 4)
+time
+timeit
+@time for i=1:100 math.sin(math.pi / 4) end
+@time for i=1:10000 math.sin(math.pi / 4) end
+@time for i=1:1000000 math.sin(math.pi / 4) end
+@time for i=1:1000000 sin(pi / 4) end
+typeof(())
+typeof((Int))
+typeof((Int,))
+typeof((Int,4))
+Tuple(3,4)
+    Pkg.add("DataFrames")
+
+using DataFrames
+df = DataFrame()
+df
+df["A"] = 1:8
+df
+df["B"] = [0,1,0,1,0,1,0,1,0,1]
+df["B"] = [0,1,0,1,0,1,0,1]
+df
+help(select)
+select(randn(4,5), 2)
+help(select!)
+contains(["aer"], ["aer", "aer", "abr"])
+for i in [1,2,3]
+println(i)
+end
+df 
+df[3] = 8:1
+8:1
+[8:1]
+[8:-1:1]
+df[3] = 8:-1:1
+df 
+df[3]
+df["x3"]
+help(read)
+ls
+ls()
+read(open("sample_test_code.txt"), String)
+read(open("sample_test_code.txt"), tring)
+read(open("sample_test_code.txt"), string)
+readall(open("sample_test_code.txt"))
+open(readall, "sample_test_code.txt")
+split(ans)
+x = open(readall, "sample_test_code.txt")
+split(x)
+split(x, '\n')
+strip("  adadad   ")
+run(`cat sample_test_code.txt`)
+'([1 2 3])
+'
+produce(3)
+function x()
+produce(1)
+produce(2)
+end
+function xx()
+produce(2)
+end
+xx()
+Task(xx)
+t = Task(xx)
+consume(t)
+consume(t)
+super(FloatingPoint)

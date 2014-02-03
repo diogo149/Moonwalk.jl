@@ -1,0 +1,130 @@
+Michael Jackson; M to J; Matlab to Julia
+* differences
+** comments
+-matlab has % comments and %{ }% block comments
+-julias has # comments
+** some functions have different syntax
+-matlab: ones(3)
+-julia: ones(3,3)
+-other examples: zeros, randn, rand
+** some functions behave differently
+-matlab: sqrt(-1) == 1i
+-julia: sqrt(-1) throws DomainError
+** functions that don't exist ?
+-magic
+-keyboard
+** functions that are different
+| MATLAB  | Julia                 |                                |
+| numel   | length                |                                |
+| mod     | %                     |                                |
+| bitxor  | $                     |                                |
+| bitor   | PIPE                  |                                |
+| bitand  | &                     |                                |
+| fprintf | @sprintf              |                                |
+| length  | x -> maximum(size(x)) |                                |
+| disp    | println               | display doesn't add a new line |
+|         |                       |                                |
+** lines not setting a variable set `ans`
+from:
+  func(...)
+to:
+  ans = func(...)
+** lines not ending in semicolons are printed
+from:
+  x = 3
+to:
+  x = 3
+  println("x = ", x)
+from:
+  3
+to:
+  ans = 3
+  println("ans = ", ans)
+**
+** strings
+-matlab strings can have either " or '
+-julia strings have " and chars have '
+** all scalars are 1 by 1 vectors
+-matlab: size(3) == [1 1]
+-julia: size(3) == ()
+** imaginary units
+-matlab: 3i or 4j
+-julia: 3im
+** plotting
+-julia: must first perform using PyPlot
+** anonymous functions
+-matlab: a = @(b,c) b + c
+-julia: a(b,c) = b + c OR a = (b,c) -> b + c
+** functions
+-matlab functions have optional `end`s
+-matlab function define return valuesat the start
+-matlab functions can be called without parameters: func
+
+from:
+  function [a b] = f()
+    ...
+  end
+to:
+  function f()
+    ...
+    [a b]
+  end
+** indexing
+-matlab: M(a,b)
+-julia: M[a,b]
+** array creation
+-in matlab, [1,2,3;4,5,6] is valid
+-in julia the commas would have to be spaces
+** array operators
+-in matlab, [1 2] > 0 works
+-in julia, this is a type error
+** line continuations
+-matlab can continue lines with '...'
+** multiple statements in a line
+b = 1
+a = b, c = [2 3]
+
+in matlab: a = b = 1; c = [2 3]
+in julia: a = [2 3]; b = 2; c = 3
+** operators
+-matlab has both ~= and !=
+-julia has only !=
+
+-julia can't compare scalars with matrices with normal operators (have to use dot version)
+** cannot index with matrix
+A = randn(3,4)
+-matlab: A(:, [3 1 2]) % reorders
+-julia: A[:, [3 1 2]] % errors
+** cannot delete dimensions by setting to empty
+-matlab: A(1, :) = [] % deletes row
+-julia: A[1, :] = [] # errors
+** different IO
+-fopen, load, save, input
+** some functions take in arguments not in parentheses
+-doc function_handle
+-help something.m
+** arrays are assigned by value
+-setting A = B copies B in matlab
+
+-use A = copy(B) for this
+* potential concerns
+** matrix indexing
+matlab uses parentheses to index and call functions
+** nargin / nargout
+matlab can have dynamic behavior depending on the number of arguments
+
+solution
+-set nargin and nargout to constants, add TODO whenever either variable is used
+** global state
+-output formatting
+ format long
+-plot formatting
+ hold on
+** matlab has classes and julia has types
+* to read
+[[https://github.com/lakras/matlab-to-julia/blob/master/translator.pl][sample translator]]
+[[http://docs.julialang.org/en/latest/manual/noteworthy-differences/][noteworthy differences between julia and matlab]]
+[[http://docs.julialang.org/en/latest/manual/performance-tips/#man-performance-tips][julia performance tips]]
+[[http://docs.julialang.org/en/latest/manual/][julia manual]]
+[[http://docs.julialang.org/en/latest/stdlib/][julia stdlib]]
+[[http://docs.julialang.org/en/release-0.1-0/stdlib/base/][julia base stdlib]]
