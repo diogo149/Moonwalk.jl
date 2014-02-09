@@ -1,6 +1,6 @@
-function hello(world)
+function hello ( world )
   i
   am
   testing
-[this is a test]
+[ this is a test ]
 end

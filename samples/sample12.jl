@@ -1,2 +1,2 @@
 # testing .^
-eye(3) .^ 2
+eye ( 3 ) .^ 2
