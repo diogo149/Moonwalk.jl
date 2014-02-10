@@ -83,8 +83,8 @@ function previous_index(a::Array, i::Int32)
     end
 end
 
-const NOSPACE = "++MOONWALK_NOSPACE++"
-const NOSPACE_REGEX = r" *\+\+MOONWALK_NOSPACE\+\+ *"
+const NOSPACE = Comment("__MOONWALK_NOSPACE__")
+const NOSPACE_REGEX = Regex("[ \n]*#"*NOSPACE.v"[ \n]*")
 
 isa_matlab_value(x) = true
 isa_matlab_value(x::String) = match(r"^\W*$", x) == nothing
@@ -374,15 +374,19 @@ function transform_comma(parse_tree::ParseTree)
 end
 
 function transform_braces(parse_tree::ParseTree)
-    for i in 2:length(parse_tree.v)
+    i = 2
+    while i <= length(parse_tree.v)
         next_elem = parse_tree.v[i]
         if isa_brace_tree(next_elem)
             prev_idx = previous_index(parse_tree.v, i)
             if (prev_idx != nothing &&
                 isa_matlab_value(parse_tree.v[prev_idx]))
                 parse_tree.v[i] = convert_parse_tree(next_elem, "{", "[")
+                insert!(parse_tree.v, i, NOSPACE)
+                i += 1
             end
         end
+        i += 1
     end
     parse_tree
 end

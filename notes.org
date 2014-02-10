@@ -124,6 +124,8 @@ solution
 ** boolean values
 in matlab, ~3 == 0, and integers can be used in if statements
 * steps
+-add no space around braces indexing
+
 -transform matlan_call to call function (to not be confusing when in an array) matlab_call(...
 same for indexing
 
