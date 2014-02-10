@@ -68,6 +68,9 @@ function previous_index(a::Array, i::Int32)
     end
 end
 
+const NOSPACE = "++MOONWALK_NOSPACE++"
+const NOSPACE_REGEX = r" *\+\+MOONWALK_NOSPACE\+\+ *"
+
 isa_matlab_value(x) = true
 isa_matlab_value(x::String) = match(r"^\W*$", x) == nothing
 
@@ -380,9 +383,10 @@ function transform_function_calls(parse_tree::ParseTree)
     take_pred(x) = isa_comment(x) || isa_matlab_value(x)
     start_index = (parse_tree.t == nothing ? 1 :
                    parse_tree.t == "function" ? 3 :
-                   : 2)
+                   parse_tree.t == "matlab_call" ? 3 :
+                   2)
     i = start_index
-    while i <= length(parse_tree.v) # doing less than
+    while i <= length(parse_tree.v)
         next_elem = parse_tree.v[i]
         if isa_paren_tree(next_elem)
             before = parse_tree.v[(i - 1):-1:start_index]
@@ -400,19 +404,27 @@ function transform_function_calls(parse_tree::ParseTree)
                 # if equality operator is to the right, we know that it's indexing
                 non_matlabs = take_while(take_pred, parse_tree.v[(i+1):end])[2]
                 if !isempty(non_matlabs) && non_matlabs[1] == "="
+                    # we know that this is a matrix, thus shouldn't
+                    # use matlab_call
                     parse_tree.v[i] = next_elem
+                    insert!(parse_tree.v, i, NOSPACE)
+                    # move i one forward because we're inserting an element
+                    i += 1
                 else
                     function_call = ParseTree("(", vcat({"("}, prev,
                                                         {",", next_elem, ")"}))
-                    matlab_call = ParseTree("matlab_call", {"matlab_call", function_call})
+                    matlab_call = ParseTree("matlab_call", {"matlab_call",
+                                                            NOSPACE,
+                                                            function_call})
                     parse_tree.v = vcat(parse_tree.v[1:(start_index - 1)],
                                         rest,
                                         {matlab_call},
                                         parse_tree.v[i+1:end])
+                    # start_index - 1 for keeping
+                    # length(rest) for rest
+                    # 1 for matlab_call
+                    i = start_index + length(rest)
                 end
-
-                # this isn't necessary to go all the way back
-                i = start_index # start from the beginning
             end
         end
         i += 1
@@ -438,6 +450,10 @@ to_julia(p::ParseNumber) = repr(p.v)
 function to_julia(c::Comment)
     lines = split(c.v, "\n")
     join(map(x->"#"*x*"\n", lines))
+end
+
+function remove_spaces(s::String)
+    replace(s, NOSPACE_REGEX, "")
 end
 
 ### Main Function
@@ -469,7 +485,10 @@ function moonwalk(matlab_code)
 
     text = flatten_tree(parse_tree)
     # inject spaces in between, since they were removed
+    # TODO only add spaces around reserved words? if, else, elseif, end, etc.
+    # make this optional though for easier testing...
+    # still need spaces in brackets though
     text = mapcat(x-> {x, " "}, text)
     ## map(x->println(repr(to_julia(x))), text)
-    "include(\"MoonwalkUtils.jl\")\n"*join(map(to_julia, text))
+    remove_spaces("include(\"MoonwalkUtils.jl\")\n"*join(map(to_julia, text)))
 end
