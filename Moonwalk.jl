@@ -7,17 +7,25 @@ const name_map =
      "bsxfun" => "broadcast",
      "max" => "maximum",
      "plus" => "+",
-    "@rdivide" => "/",
-    "@minus" => "-",
-    "~=" => "!=",
+     "@rdivide" => "/",
+     "@minus" => "-",
+     "~=" => "!=",
      }
 
 ### Utility Functions
 
 mapcat(f, itr) = mapreduce(f, vcat, itr)
 
-counter_map = Dict()
+function take_while{T}(p::Function, a::Array{T,1})
+    r = reverse(a)
+    take = T[]
+    while !isempty(r) && p(r[end])
+        push!(take, pop!(r))
+    end
+    take, reverse(r)
+end
 
+counter_map = Dict()
 function genvar(name::String)
     # generates a unique var to avoid name collisions
     if !(name in keys(counter_map))
@@ -71,6 +79,8 @@ isa_brace_tree(x::ParseTree) = x.t == "{"
 
 isa_func_tree(x) = false
 isa_func_tree(x::ParseTree) = x.t == "function"
+
+isa_comment(x) = isa(x, Comment)
 
 ### Transforms
 
@@ -365,25 +375,30 @@ end
 
 function transform_function_calls(parse_tree::ParseTree)
     start_index = isa_func_tree(parse_tree) ? 4 : 2
-
-    for i in start_index:length(parse_tree.v)
+    i = start_index
+    while i <= length(parse_tree.v)
         next_elem = parse_tree.v[i]
         if isa_paren_tree(next_elem)
-            prev_idx = previous_index(parse_tree.v, i)
-            if (prev_idx != nothing &&
-                prev_idx >= start_index &&
-                isa_matlab_value(parse_tree.v[prev_idx]))
-                prev_elem = parse_tree.v[prev_idx]
+            prev, rest = take_while(x -> isa_comment(x) || isa_matlab_value(x),
+                                    parse_tree.v[i:-1:start_index])
+            comments, prev = take_while(isa_comment, reverse(prev))
+            rest = vcat(reverse(rest), comments)
+            if !isempty(prev)
+                println("dadad")
                 next_elem.t = "["
                 @assert next_elem.v[1] == "(" "paren tree wrong start"
                 @assert next_elem.v[end] == ")" "paren tree wrong end"
                 next_elem.v[1] = "["
                 next_elem.v[end] = "]"
-                parse_tree.v[prev_idx] = "matlab_call"
-                function_call = {"(", prev_elem, ",", next_elem, ")"}
-                parse_tree.v[i] = ParseTree("(", function_call)
+
+                function_call = ParseTree("(", {"(", prev, ",", next_elem, ")"})
+                matlab_call = ParseTree("matlab_call", {"matlab_call", function_call})
+                parse_tree.v = vcat(rest, {matlab_call}, parse_tree.v[i+1:end])
+                i = length(rest) + 1  # set i to index of created form
+               println(i)
             end
         end
+        i += 1
     end
     parse_tree
 end

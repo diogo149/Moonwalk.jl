@@ -125,6 +125,7 @@ solution
 in matlab, ~3 == 0, and integers can be used in if statements
 * steps
 -function calls
+ -test stacked matlab calls
 
 -max(blah, [], 2) -> maximum(blah, 2)
 
