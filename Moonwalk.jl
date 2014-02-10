@@ -374,28 +374,33 @@ function transform_braces(parse_tree::ParseTree)
 end
 
 function transform_function_calls(parse_tree::ParseTree)
-    start_index = isa_func_tree(parse_tree) ? 4 : 2
+    start_index = (parse_tree.t == nothing ? 1 :
+                   parse_tree.t == "function" ? 3 :
+                   : 2)
     i = start_index
-    while i <= length(parse_tree.v)
+    while i <= length(parse_tree.v) # doing less than
         next_elem = parse_tree.v[i]
         if isa_paren_tree(next_elem)
-            prev, rest = take_while(x -> isa_comment(x) || isa_matlab_value(x),
-                                    parse_tree.v[i:-1:start_index])
+            take_pred(x) = isa_comment(x) || isa_matlab_value(x)
+            before = parse_tree.v[(i - 1):-1:start_index]
+            prev, rest = take_while(take_pred, before)
             comments, prev = take_while(isa_comment, reverse(prev))
             rest = vcat(reverse(rest), comments)
+
             if !isempty(prev)
-                println("dadad")
                 next_elem.t = "["
                 @assert next_elem.v[1] == "(" "paren tree wrong start"
                 @assert next_elem.v[end] == ")" "paren tree wrong end"
                 next_elem.v[1] = "["
                 next_elem.v[end] = "]"
-
-                function_call = ParseTree("(", {"(", prev, ",", next_elem, ")"})
+                function_call = ParseTree("(", vcat({"("}, prev,
+                                                    {",", next_elem, ")"}))
                 matlab_call = ParseTree("matlab_call", {"matlab_call", function_call})
-                parse_tree.v = vcat(rest, {matlab_call}, parse_tree.v[i+1:end])
-                i = length(rest) + 1  # set i to index of created form
-               println(i)
+                parse_tree.v = vcat(parse_tree.v[1:(start_index - 1)],
+                                    rest,
+                                    {matlab_call},
+                                    parse_tree.v[i+1:end])
+                i = start_index # start from the beginning
             end
         end
         i += 1
@@ -438,13 +443,17 @@ function moonwalk(matlab_code)
         text = mapcat(transform, text)
     end
     parse_tree = to_parse_tree(text)
+
     # TODO put in loop
     parse_tree = prewalk(parse_tree, transform_function)
     parse_tree = prewalk(parse_tree, transform_comma)
     parse_tree = prewalk(parse_tree, transform_switch)
     parse_tree = prewalk(parse_tree, transform_names)
     parse_tree = prewalk(parse_tree, transform_braces)
+    ## println(repr(parse_tree))
     parse_tree = prewalk(parse_tree, transform_function_calls)
+    ## println(repr(parse_tree))
+
 
     text = flatten_tree(parse_tree)
     # inject spaces in between, since they were removed
