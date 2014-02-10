@@ -1,1 +1,1 @@
-matlab_call( x , [ matlab_call( y , [ "z" ] ) ] )
+matlab_call( x , { matlab_call( y , { "z" } ) } )

@@ -12,6 +12,21 @@ const name_map =
      "~=" => "!=",
      }
 
+const nesting_map =
+    {
+     "[" => "]",
+     "{" => "}",
+     "(" => ")",
+     "if" => "end",
+     "function" => "end",
+     "switch" => "end",
+     "while" => "end",
+     "try" => "end",
+     "for" => "end",
+     nothing => "", # this shouldn't ever be called
+     }
+const nesting_map_keys = keys(nesting_map)
+
 ### Utility Functions
 
 mapcat(f, itr) = mapreduce(f, vcat, itr)
@@ -84,6 +99,19 @@ isa_func_tree(x) = false
 isa_func_tree(x::ParseTree) = x.t == "function"
 
 isa_comment(x) = isa(x, Comment)
+
+function convert_parse_tree(p::ParseTree, from, to)
+    # only works for standard parse trees (not nothing)
+    assert(from in nesting_map_keys)
+    assert(p.t == from)
+    assert(p.v[1] == from)
+    assert(p.v[end] == nesting_map[from])
+    new_tree = deepcopy(p)
+    new_tree.t = to
+    new_tree.v[1] = to
+    new_tree.v[end] = nesting_map[to]
+    new_tree
+end
 
 ### Transforms
 
@@ -237,21 +265,6 @@ function tokenize(s::String)
     split(s, [' ', '\t'], 0, false)
 end
 
-const nesting_map =
-    {
-     "[" => "]",
-     "{" => "}",
-     "(" => ")",
-     "if" => "end",
-     "function" => "end",
-     "switch" => "end",
-     "while" => "end",
-     "try" => "end",
-     "for" => "end",
-     nothing => "", # this shouldn't ever be called
-     }
-const nesting_map_keys = keys(nesting_map)
-
 function to_parse_tree(original_tokens)
     function helper(node_type)
         # takes in node_type and starting index and returns a parse
@@ -367,12 +380,7 @@ function transform_braces(parse_tree::ParseTree)
             prev_idx = previous_index(parse_tree.v, i)
             if (prev_idx != nothing &&
                 isa_matlab_value(parse_tree.v[prev_idx]))
-                next_elem.t = "["
-                @assert next_elem.v[1] == "{" "brace tree wrong start"
-                @assert next_elem.v[end] == "}" "brace tree wrong end"
-                next_elem.v[1] = "["
-                next_elem.v[end] = "]"
-                parse_tree.v[i] = next_elem
+                parse_tree.v[i] = convert_parse_tree(next_elem, "{", "[")
             end
         end
     end
@@ -395,22 +403,18 @@ function transform_function_calls(parse_tree::ParseTree)
             rest = vcat(reverse(rest), comments)
 
             if !isempty(prev)
-                next_elem.t = "["
-                @assert next_elem.v[1] == "(" "paren tree wrong start"
-                @assert next_elem.v[end] == ")" "paren tree wrong end"
-                next_elem.v[1] = "["
-                next_elem.v[end] = "]"
-
                 # if equality operator is to the right, we know that it's indexing
                 non_matlabs = take_while(take_pred, parse_tree.v[(i+1):end])[2]
                 if !isempty(non_matlabs) && non_matlabs[1] == "="
                     # we know that this is a matrix, thus shouldn't
                     # use matlab_call
-                    parse_tree.v[i] = next_elem
+                    parse_tree.v[i] = convert_parse_tree(next_elem, "(", "[")
                     insert!(parse_tree.v, i, NOSPACE)
                     # move i one forward because we're inserting an element
                     i += 1
                 else
+                    next_elem = convert_parse_tree(next_elem, "(", "{")
+
                     function_call = ParseTree("(", vcat({"("}, prev,
                                                         {",", next_elem, ")"}))
                     matlab_call = ParseTree("matlab_call", {"matlab_call",
