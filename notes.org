@@ -124,11 +124,9 @@ solution
 ** boolean values
 in matlab, ~3 == 0, and integers can be used in if statements
 * steps
--transform dot indexing leaves unparsed strings
-
--parse numbers first
-
 -{ } indexing
+
+-function calls
 
 -max(blah, [], 2) -> maximum(blah, 2)
 

@@ -27,6 +27,9 @@ function genvar(name::String)
     "__moonwalk_genvar_$(name)_$(counter_map[name])"
 end
 
+isa_matlab_value(x) = true
+isa_matlab_value(x::String) = match(r"^\W*$", x) == nothing
+
 ### Types
 
 abstract ParseNode
@@ -37,6 +40,10 @@ end
 
 type ParseString <: ParseNode
     v::String
+end
+
+type ParseNumber <: ParseNode
+    v::Number
 end
 
 type ParseTree <: ParseNode
@@ -113,6 +120,7 @@ function parse_strings_and_comments(s::String)
         end
     end
     # merging strings for matrix transpose
+    # TODO might not be necessary
     merged = {}
     s = ""
     for p in parsed
@@ -136,19 +144,44 @@ end
 
 transform_numbers(n::ParseNode) = {n}
 function transform_numbers(s::String)
-    # TODO
+    # adding a blank space to make it easier
+    # for regex
+    s = " "*s
+    m = match(r"\W(\d|[\.\d]{2,})", s)
+    if m == nothing
+        {s}
+    else
+        start_index = m.offset + 1
+        # TODO change this for hex, binary, etc.
+        m2 = match(r"[\.\d]{2,}|\d", s[start_index:end])
+        end_index = start_index + length(m2.match) - 1
+        prev_string = s[1:start_index - 1]
+        match_string = s[start_index:end_index]
+        next_string = s[end_index + 1:end]
+        # TODO create a map if variable not initialized
+        vcat({prev_string, ParseNumber(parse(match_string))},
+             transform_numbers(next_string))
+    end
 end
 
 transform_dot_indexing(n::ParseNode) = {n}
 function transform_dot_indexing(s::String)
     # this transform is to convert Matlab's struct indexing
     # to one that resembles Julia's dict
-    function helper(indexing)
-        "[\""*indexing[2:end]*"\"]"
+    m = match(r"\.[A-Za-z]", s)
+    if m == nothing
+        {s}
+    else
+        start_index = m.offset + 1
+        m2 = match(r"^\w+", s[start_index:end])
+        end_index = start_index + length(m2.match) - 1
+        prev_string = s[1:m.offset - 1]*"["
+        match_string = s[start_index:end_index]
+        next_string = "]"*s[end_index + 1:end]
+        # TODO create a map if variable not initialized
+        vcat({prev_string, ParseString(match_string)},
+             transform_dot_indexing(next_string))
     end
-    # assumes all dot indexing is for structs
-    # TODO create a map if variable not initialized
-    {replace(s, r"\.[A-Za-z]\w*", helper)}
 end
 
 transform_new_lines(n::ParseNode) = {n}
@@ -156,7 +189,7 @@ function transform_new_lines(s::ParseString)
     map(ParseString, transform_new_lines(s.v))
 end
 function transform_new_lines(s::String)
-   {replace(s, r"\.\.\.\n|\\\n", "")}
+    {replace(s, r"\.\.\.\n|\\\n", "")}
 end
 
 tokenize(n::ParseNode) = {n}
@@ -230,7 +263,7 @@ function postwalk(parse_tree::ParseTree, f::Function)
 end
 
 function transform_switch(parse_tree::ParseTree)
-    case_test(s::String) = "=="
+    case_test(s) = "=="
     case_test(p::ParseTree) = p.t == "{" ? "in" : "=="
 
     if parse_tree.t != "switch"
@@ -282,11 +315,42 @@ function transform_comma(parse_tree::ParseTree)
         # don't replace commas, might be for function calls
         return parse_tree
     end
+    # matlab [1,2,3] == julia [1;2;3]
     replacement = parse_tree.t == "[" ? " " : "\n"
     # ESS mode requires closing bracket... ]
     for i in 1:length(parse_tree.v)
         if parse_tree.v[i] == ","
             parse_tree.v[i] = replacement
+        end
+    end
+    parse_tree
+end
+
+function transform_braces(parse_tree::ParseTree)
+    isa_brace_tree(x) = false
+    isa_brace_tree(x::ParseTree) = x.t == "{"
+
+    function previous_index(i)
+        while i > 1
+            i -= 1
+            if !isa(parse_tree.v[i], Comment)
+                return i
+            end
+        end
+    end
+    for i in 2:length(parse_tree.v)
+        next_elem = parse_tree.v[i]
+        if isa_brace_tree(next_elem)
+            prev_idx = previous_index(i)
+            if (prev_idx != nothing &&
+                isa_matlab_value(parse_tree.v[prev_idx]))
+                next_elem.t = "["
+                @assert next_elem.v[1] == "{" "brace tree wrong start"
+                @assert next_elem.v[end] == "}" "brace tree wrong end"
+                next_elem.v[1] = "["
+                next_elem.v[end] = "]"
+                parse_tree.v[i] = next_elem
+            end
         end
     end
     parse_tree
@@ -306,6 +370,7 @@ end
 
 to_julia(s::String) = s
 to_julia(p::ParseString) = repr(p.v)
+to_julia(p::ParseNumber) = repr(p.v)
 function to_julia(c::Comment)
     lines = split(c.v, "\n")
     join(map(x->"#"*x*"\n", lines))
@@ -318,6 +383,7 @@ function moonwalk(matlab_code)
     for transform in [
                       parse_strings_and_comments
                       transform_new_lines
+                      transform_numbers
                       transform_dot_indexing
                       ## word_substitute
                       tokenize
@@ -331,6 +397,7 @@ function moonwalk(matlab_code)
     parse_tree = prewalk(parse_tree, transform_comma)
     parse_tree = prewalk(parse_tree, transform_switch)
     parse_tree = prewalk(parse_tree, transform_names)
+    parse_tree = prewalk(parse_tree, transform_braces)
 
     text = flatten_tree(parse_tree)
     # inject spaces in between, since they were removed
