@@ -124,6 +124,8 @@ solution
 ** boolean values
 in matlab, ~3 == 0, and integers can be used in if statements
 * steps
+-todo assignment to matlab_calls should always be a matrix
+
 -max(blah, [], 2) -> maximum(blah, 2)
 
 -functions and matrices
