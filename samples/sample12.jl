@@ -1,2 +1,2 @@
 # testing .^
-eye ( 3 ) .^ 2
+matlab_call ( eye , [ 3 ] ) .^ 2

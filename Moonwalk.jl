@@ -27,9 +27,6 @@ function genvar(name::String)
     "__moonwalk_genvar_$(name)_$(counter_map[name])"
 end
 
-isa_matlab_value(x) = true
-isa_matlab_value(x::String) = match(r"^\W*$", x) == nothing
-
 ### Types
 
 abstract ParseNode
@@ -53,6 +50,27 @@ end
 ParseTree(x::String) = ParseTree(x, {x})
 ParseTree(x::Nothing) = ParseTree(x, {})
 push!(t::ParseTree, x) = push!(t.v, x)
+
+function previous_index(a::Array, i::Int32)
+    while i > 1
+        i -= 1
+        if !isa(a[i], Comment)
+            return i
+        end
+    end
+end
+
+isa_matlab_value(x) = true
+isa_matlab_value(x::String) = match(r"^\W*$", x) == nothing
+
+isa_paren_tree(x) = false
+isa_paren_tree(x::ParseTree) = x.t == "("
+
+isa_brace_tree(x) = false
+isa_brace_tree(x::ParseTree) = x.t == "{"
+
+isa_func_tree(x) = false
+isa_func_tree(x::ParseTree) = x.t == "function"
 
 ### Transforms
 
@@ -327,21 +345,10 @@ function transform_comma(parse_tree::ParseTree)
 end
 
 function transform_braces(parse_tree::ParseTree)
-    isa_brace_tree(x) = false
-    isa_brace_tree(x::ParseTree) = x.t == "{"
-
-    function previous_index(i)
-        while i > 1
-            i -= 1
-            if !isa(parse_tree.v[i], Comment)
-                return i
-            end
-        end
-    end
     for i in 2:length(parse_tree.v)
         next_elem = parse_tree.v[i]
         if isa_brace_tree(next_elem)
-            prev_idx = previous_index(i)
+            prev_idx = previous_index(parse_tree.v, i)
             if (prev_idx != nothing &&
                 isa_matlab_value(parse_tree.v[prev_idx]))
                 next_elem.t = "["
@@ -350,6 +357,31 @@ function transform_braces(parse_tree::ParseTree)
                 next_elem.v[1] = "["
                 next_elem.v[end] = "]"
                 parse_tree.v[i] = next_elem
+            end
+        end
+    end
+    parse_tree
+end
+
+function transform_function_calls(parse_tree::ParseTree)
+    start_index = isa_func_tree(parse_tree) ? 4 : 2
+
+    for i in start_index:length(parse_tree.v)
+        next_elem = parse_tree.v[i]
+        if isa_paren_tree(next_elem)
+            prev_idx = previous_index(parse_tree.v, i)
+            if (prev_idx != nothing &&
+                prev_idx >= start_index &&
+                isa_matlab_value(parse_tree.v[prev_idx]))
+                prev_elem = parse_tree.v[prev_idx]
+                next_elem.t = "["
+                @assert next_elem.v[1] == "(" "paren tree wrong start"
+                @assert next_elem.v[end] == ")" "paren tree wrong end"
+                next_elem.v[1] = "["
+                next_elem.v[end] = "]"
+                parse_tree.v[prev_idx] = "matlab_call"
+                function_call = {"(", prev_elem, ",", next_elem, ")"}
+                parse_tree.v[i] = ParseTree("(", function_call)
             end
         end
     end
@@ -391,13 +423,13 @@ function moonwalk(matlab_code)
         text = mapcat(transform, text)
     end
     parse_tree = to_parse_tree(text)
-    # TODO transform tree
-    ## println(parse_tree)
+    # TODO put in loop
     parse_tree = prewalk(parse_tree, transform_function)
     parse_tree = prewalk(parse_tree, transform_comma)
     parse_tree = prewalk(parse_tree, transform_switch)
     parse_tree = prewalk(parse_tree, transform_names)
     parse_tree = prewalk(parse_tree, transform_braces)
+    parse_tree = prewalk(parse_tree, transform_function_calls)
 
     text = flatten_tree(parse_tree)
     # inject spaces in between, since they were removed

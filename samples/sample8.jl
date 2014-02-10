@@ -1,1 +1,1 @@
-3 == length ( [ 4 2 1 ] )
+3 == matlab_call ( length , [ [ 4 2 1 ] ] )
