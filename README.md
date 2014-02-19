@@ -7,5 +7,5 @@ Run with `./run_moonwalk.jl matlab_file.m`.
 
 Assumptions
 --------
-# Valid Matlab
-# No empty switch statements
+1. Valid Matlab
+1. No empty switch statements
