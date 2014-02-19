@@ -1,5 +1,16 @@
 import Base.push!
 
+const reserved_words =
+    {
+     "if"
+     "else"
+     "elseif"
+     "case"
+     "end"
+     "switch"
+     "function"
+     }
+
 const name_map =
     {
      "numel" => "length",
@@ -138,10 +149,15 @@ function parse_strings_and_comments(s::String)
                     # checking if preceding non-space character is part of matlab
                     # literal
                     (match(r"[\w\}\)\]][ \t]*$", s[1:state_end]) != nothing))
-                    # need to special case this because single
-                    # quote might be for matrix transpose
-                    state = nothing
-                    push!(parsed, "'")
+                    # checking if preceeding word is reserved
+                    reserved_m = match(r"(\w+)[ \t]*$", s[1:state_end])
+                    if (reserved_m == nothing ||
+                        !(reserved_m.captures[1] in reserved_words))
+                        # need to special case this because single
+                        # quote might be for matrix transpose
+                        state = nothing
+                        push!(parsed, "'")
+                    end
                 end
             end
         elseif state == "%{"
@@ -325,14 +341,20 @@ function transform_switch(parse_tree::ParseTree)
     var_name = genvar("switch_val")
     first_case = true
 
-    new_v = {var_name, "=", switch_value, "\n"}
+    new_v = {var_name, "=", switch_value}
     while !isempty(v)
         elem = pop!(v)
         if elem == "case"
             case_val = pop!(v)
-            push!(new_v, first_case ? "if" : "elseif")
+            if first_case
+                push!(new_v, "\n")
+                push!(new_v, "if")
+            else
+                push!(new_v, "elseif")
+            end
             push!(new_v, var_name)
             push!(new_v, case_test(case_val))
+            push!(new_v, " ")
             push!(new_v, case_val)
             first_case = false
         elseif elem == "otherwise"
@@ -355,6 +377,7 @@ function transform_function(parse_tree::ParseTree)
         last = pop!(parse_tree.v)
         @assert last == "end" "function not ending with `end`"
         push!(parse_tree.v, return_value)
+        push!(parse_tree.v, "\n")
         push!(parse_tree.v, last)
     end
     parse_tree

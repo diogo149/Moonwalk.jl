@@ -13,6 +13,7 @@ end
 
 range = length(ARGS) > 0 ? map(int, ARGS) : 1:int(length(split(readall(`ls samples/`)))/2)
 for test_num in range
+    counter_map = Dict()
     prefix = string("samples/sample", test_num)
     matlab_code = open(readall, string(prefix, ".m"))
     julia_code = open(readall, string(prefix, ".jl"))
