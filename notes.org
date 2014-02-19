@@ -123,6 +123,9 @@ solution
 ** matlab has classes and julia has types
 ** boolean values
 in matlab, ~3 == 0, and integers can be used in if statements
+** string vs matrix transpose
+it seems the rules for matrix transposition are not easily parsable with the current algorithm
+(string starts if not after matlab literal)
 * steps
 -add no space around braces indexing
 

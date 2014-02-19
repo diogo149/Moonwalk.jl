@@ -9,3 +9,7 @@ Assumptions
 --------
 1. Valid Matlab
 1. No empty switch statements
+
+Testing
+---
+Run `./MoonwalkTest.jl` to run the test suite, or input specific numbers to run specific test cases (in the samples folder).

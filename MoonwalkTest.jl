@@ -11,7 +11,8 @@ function pop_equal(x, y)
     reverse(x), reverse(y)
 end
 
-for test_num in 1:int(length(split(readall(`ls samples/`)))/2)
+range = length(ARGS) > 0 ? map(int, ARGS) : 1:int(length(split(readall(`ls samples/`)))/2)
+for test_num in range
     prefix = string("samples/sample", test_num)
     matlab_code = open(readall, string(prefix, ".m"))
     julia_code = open(readall, string(prefix, ".jl"))

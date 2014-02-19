@@ -135,10 +135,13 @@ function parse_strings_and_comments(s::String)
                 index += m.offset + length(m.match) - 1
                 if (m.match == "'" &&
                     state_end != 0 &&
-                    (match(r"\w", s[state_end:state_end]) != nothing))
+                    # checking if preceding non-space character is part of matlab
+                    # literal
+                    (match(r"[\w\}\)\]][ \t]*$", s[1:state_end]) != nothing))
                     # need to special case this because single
                     # quote might be for matrix transpose
                     state = nothing
+                    push!(parsed, "'")
                 end
             end
         elseif state == "%{"
@@ -347,7 +350,6 @@ end
 
 function transform_function(parse_tree::ParseTree)
     if parse_tree.t == "function" && parse_tree.v[3] == "="
-        println(open("pt.txt", "w"), parse_tree)
         return_value = parse_tree.v[2]
         splice!(parse_tree.v, 2:3)
         last = pop!(parse_tree.v)
@@ -477,19 +479,19 @@ function moonwalk(matlab_code)
                       ## word_substitute
                       tokenize
                       ]
+        ## println(repr(text))
         text = mapcat(transform, text)
     end
     parse_tree = to_parse_tree(text)
 
     # TODO put in loop
+    ## println(repr(parse_tree))
     parse_tree = prewalk(parse_tree, transform_function)
-    println("doo")
     parse_tree = prewalk(parse_tree, transform_comma)
     parse_tree = prewalk(parse_tree, transform_switch)
     parse_tree = prewalk(parse_tree, transform_names)
     parse_tree = prewalk(parse_tree, transform_braces)
     parse_tree = prewalk(parse_tree, transform_function_calls)
-    ## println(repr(parse_tree))
     ## println(repr(parse_tree))
 
 
