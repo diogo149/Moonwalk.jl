@@ -347,9 +347,10 @@ end
 
 function transform_function(parse_tree::ParseTree)
     if parse_tree.t == "function" && parse_tree.v[3] == "="
+        println(open("pt.txt", "w"), parse_tree)
         return_value = parse_tree.v[2]
         splice!(parse_tree.v, 2:3)
-        last = splice!(parse_tree.v, length(parse_tree.v))
+        last = pop!(parse_tree.v)
         @assert last == "end" "function not ending with `end`"
         push!(parse_tree.v, return_value)
         push!(parse_tree.v, last)
@@ -482,6 +483,7 @@ function moonwalk(matlab_code)
 
     # TODO put in loop
     parse_tree = prewalk(parse_tree, transform_function)
+    println("doo")
     parse_tree = prewalk(parse_tree, transform_comma)
     parse_tree = prewalk(parse_tree, transform_switch)
     parse_tree = prewalk(parse_tree, transform_names)
