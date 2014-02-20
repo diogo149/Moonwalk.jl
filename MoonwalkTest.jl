@@ -19,7 +19,8 @@ for test_num in range
     julia_code = open(readall, string(prefix, ".jl"))
     julia_code = split("include(\"MoonwalkUtils.jl\")\n"*julia_code)
     println(prefix)
-    transformed = split(moonwalk(matlab_code))
+    output = moonwalk(matlab_code)
+    transformed = split(output)
     if transformed != julia_code
         diff_actual, diff_expected = pop_equal(transformed, julia_code)
         println("ACTUAL:")
@@ -28,6 +29,6 @@ for test_num in range
         println(repr(diff_expected))
         print(open("transformed.tmp", "w"), transformed)
         print(open("julia_code.tmp", "w"), julia_code)
-        ## break # TODO remove
+        print(open("transformed.raw.tmp", "w"), output)
     end
 end
